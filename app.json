@@ -1,0 +1,7 @@
+{
+  "name": "Recipe Services",
+  "description": "A barebones Node.js app using Express 4",
+  "repository": "https://git.heroku.com/recipe-services.git",
+  "logo": "http://node-js-sample.herokuapp.com/node.svg",
+  "keywords": ["node", "express", "static"]
+}
