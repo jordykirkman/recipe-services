@@ -130,30 +130,39 @@ exports.login = function (req, res) {
 	var returnObj = {};
 
 	var options = {
-		url: 'https://api.parse.com/1/login?username=/' + u + '&password=' + p,
+		url: 'https://api.parse.com/1/login?username=' + u + '&password=' + p,
 		method: 'GET',
 	}
 
 	request(options, function (error, response, body) {
 		  	user = JSON.parse(body);
+
+		  	// if theres an error
+		  	if(user.error){
+		  		res.send(user);
+		  	} else {
+		  	// otherwise we need the user's books
 		  	user.id = user.objectId;
 		  	returnObj['user'] = user;
 
+		  	// this is the object parse needs to search books by user id
 		  	var params = encodeURIComponent('where={"users":"' + user.objectId + '"}');
 			var subOptions = {
 				url: 'https://api.parse.com/1/classes/Book?' + params,
 				method: 'GET',
 			}
-			request(options, function (error, response, body) {
+
+			// put the books into the users books array, ember likes it this way
+			request(subOptions, function (error, response, body) {
 			    	returnObj['books'] = body;
 				  	returnObj.books.forEach(function(book){
 				  		book.id = book.objectId;
-				  		user.books.push(book.objectId);
+				  		returnObj['user'].books.push(book.objectId);
 				  	});
 				  	res.send(returnObj);
 			    }
 			);
-
+			}
 	    }
 	);
 }
