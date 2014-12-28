@@ -3,13 +3,6 @@ var request = require('request');
 // get all books or get by query string
 exports.getAll = function (req, res) {
 
-	var headers = {
-		"X-Parse-Application-Id": req.get("X-Parse-Application-Id"),
-		"X-Parse-REST-API-Key": req.get("X-Parse-REST-API-Key"),
-		"X-Parse-Session-Token": req.get("X-Parse-Session-Token"),
-		"Content-Type": "application/json",
-	}
-
 	// if a list of ids is in the query string, fetch them all
 	if(req.query.ids){
 
@@ -22,7 +15,7 @@ exports.getAll = function (req, res) {
 		var options = {
 			url: 'https://api.parse.com/1/classes/Book?' + params,
 			method: 'GET',
-			headers: headers
+			headers: req.headers
 		}
 
 		request(options, function (error, response, body) {
@@ -43,7 +36,7 @@ exports.getAll = function (req, res) {
 		var options = {
 			url: 'https://api.parse.com/1/classes/Book/',
 			method: 'GET',
-			headers: headers
+			headers: req.headers
 		}
 
 		request(options, function (error, response, body) {
@@ -61,17 +54,10 @@ exports.getById = function (req, res) {
 
 	var id = req.params.id;
 
-	var headers = {
-		"X-Parse-Application-Id": req.get("X-Parse-Application-Id"),
-		"X-Parse-REST-API-Key": req.get("X-Parse-REST-API-Key"),
-		"X-Parse-Session-Token": req.get("X-Parse-Session-Token"),
-		"Content-Type": "application/json",
-	}
-
 	var options = {
 		url: 'https://api.parse.com/1/classes/Book/' + id,
 		method: 'GET',
-		headers: headers
+		headers: req.headers
 	}
 
 	request(options, function (error, response, body) {
@@ -87,16 +73,9 @@ exports.getById = function (req, res) {
 exports.post = function (req, res) {
 	var data = req.body;
 
-	var headers = {
-		"X-Parse-Application-Id": req.get("X-Parse-Application-Id"),
-		"X-Parse-REST-API-Key": req.get("X-Parse-REST-API-Key"),
-		"X-Parse-Session-Token": req.get("X-Parse-Session-Token"),
-		"Content-Type": "application/json",
-	}
-
 	var options = {
 		url: 'https://api.parse.com/1/classes/Book/',
-		headers: headers,
+		headers: req.headers,
 		body: data,
 		method: 'post'
 	}
@@ -114,16 +93,9 @@ exports.update = function (req, res) {
 	var id = req.params.id;
 	var data = req.body;
 
-	var headers = {
-		"X-Parse-Application-Id": req.get("X-Parse-Application-Id"),
-		"X-Parse-REST-API-Key": req.get("X-Parse-REST-API-Key"),
-		"X-Parse-Session-Token": req.get("X-Parse-Session-Token"),
-		"Content-Type": "application/json",
-	}
-
 	var options = {
 		url: 'https://api.parse.com/1/classes/Book/',
-		headers: headers,
+		headers: req.headers,
 		body: data,
 		method: 'put'
 	}

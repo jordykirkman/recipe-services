@@ -3,13 +3,6 @@ var request = require('request');
 // get all books or get by query string
 exports.getAll = function (req, res) {
 
-	var headers = {
-		"X-Parse-Application-Id": req.get("X-Parse-Application-Id"),
-		"X-Parse-REST-API-Key": req.get("X-Parse-REST-API-Key"),
-		"X-Parse-Session-Token": req.get("X-Parse-Session-Token"),
-		"Content-Type": "application/json",
-	}
-
 	// if a list of ids is in the query string, fetch them all
 	if(req.query.ids){
 
@@ -22,7 +15,7 @@ exports.getAll = function (req, res) {
 		var options = {
 			url: 'https://api.parse.com/1/users?' + params,
 			method: 'GET',
-			headers: headers
+			headers: req.headers
 		}
 
 		request(options, function (error, response, body) {
@@ -39,8 +32,10 @@ exports.getAll = function (req, res) {
 
 	} else {
 
-		// do nothing, we do not allow someone to fetch all users
-		// if the app is trying to do this, it shouldnt
+		// send back nothing, we do not allow someone to fetch all users
+		var formattedResponse = {};
+		formattedResponse['users'] = [];
+		res.send(formattedResponse);
 	}
 }
 
@@ -48,25 +43,50 @@ exports.getAll = function (req, res) {
 exports.getById = function (req, res) {
 	var id = req.params.id;
 
-	var headers = {
-		"X-Parse-Application-Id": req.get("X-Parse-Application-Id"),
-		"X-Parse-REST-API-Key": req.get("X-Parse-REST-API-Key"),
-		"X-Parse-Session-Token": req.get("X-Parse-Session-Token"),
-		"Content-Type": "application/json",
-	}
-
 	var options = {
 		url: 'https://api.parse.com/1/users/' + id,
 		method: 'GET',
-		headers: headers
+		headers: req.headers
 	}
 
 	request(options, function (error, response, body) {
+		var user = JSON.parse(body);
 
-	  	var finalResponse = JSON.parse(body);
-	  	finalResponse.id = finalResponse.objectId;
-	    res.send(finalResponse);
+	  	// if theres an error
+	  	if(user.error){
+	  		res.send(user);
+	  	} else {
+		  	// otherwise we need the user's books
 
+		  	// lets format the first part of our response
+			returnObj = {};
+		  	returnObj['user'] = user;
+		  	returnObj['user']['id'] = user.objectId;
+
+		  	// lets get the user's books
+			var subHeaders = req.headers;
+			subHeaders["X-Parse-Session-Token"] = user.sessionToken;
+
+		  	// this is the object parse needs to search books by user id
+		  	var params = encodeURIComponent('where={"users":"' + user.objectId + '"}');
+			var subOptions = {
+				url: 'https://api.parse.com/1/classes/Book?' + params,
+				headers: subHeaders,
+				method: 'GET',
+			}
+
+			// put the books into the users books array, ember likes it this way
+			request(subOptions, function (error, response, body) {
+				var books = JSON.parse(body).results;
+		    	returnObj['books'] = books;
+			  	books.forEach(function(book){
+			  		book.id = book.objectId;
+			  		returnObj['user']['books'] = [];
+			  		returnObj['user']['books'].push(book.objectId);
+			  	});
+			  	res.send(returnObj);
+		    });
+		}
 	})
 }
 
@@ -74,16 +94,9 @@ exports.getById = function (req, res) {
 exports.post = function (req, res) {
 	var data = req.body;
 
-	var headers = {
-		"X-Parse-Application-Id": req.get("X-Parse-Application-Id"),
-		"X-Parse-REST-API-Key": req.get("X-Parse-REST-API-Key"),
-		"X-Parse-Session-Token": req.get("X-Parse-Session-Token"),
-		"Content-Type": "application/json",
-	}
-
 	var options = {
 		url: 'https://api.parse.com/1/classes/Book/',
-		headers: headers,
+		headers: req.headers,
 		body: data,
 		method: 'post'
 	}
@@ -101,16 +114,9 @@ exports.update = function (req, res) {
 	var id = req.params.id;
 	var data = req.body;
 
-	var headers = {
-		"X-Parse-Application-Id": req.get("X-Parse-Application-Id"),
-		"X-Parse-REST-API-Key": req.get("X-Parse-REST-API-Key"),
-		"X-Parse-Session-Token": req.get("X-Parse-Session-Token"),
-		"Content-Type": "application/json",
-	}
-
 	var options = {
 		url: 'https://api.parse.com/1/classes/Book/' + id,
-		headers: headers,
+		headers: req.headers,
 		body: data,
 		method: 'post'
 	}
@@ -125,44 +131,51 @@ exports.update = function (req, res) {
 
 // login with user creds
 exports.login = function (req, res) {
-	var u = req.params.username;
-	var p = req.params.password;
+	var u = req.query.username;
+	var p = req.query.password;
+
 	var returnObj = {};
 
 	var options = {
 		url: 'https://api.parse.com/1/login?username=' + u + '&password=' + p,
 		method: 'GET',
+		headers: req.headers
 	}
 
 	request(options, function (error, response, body) {
-		  	user = JSON.parse(body);
+	  	var user = JSON.parse(body);
 
-		  	// if theres an error
-		  	if(user.error){
-		  		res.send(user);
-		  	} else {
+	  	// if theres an error
+	  	if(user.error){
+	  		res.send(user);
+	  	} else {
 		  	// otherwise we need the user's books
 		  	user.id = user.objectId;
+
+			var subHeaders = req.headers;
+			subHeaders["X-Parse-Session-Token"] = user.sessionToken;
+
 		  	returnObj['user'] = user;
 
 		  	// this is the object parse needs to search books by user id
 		  	var params = encodeURIComponent('where={"users":"' + user.objectId + '"}');
 			var subOptions = {
 				url: 'https://api.parse.com/1/classes/Book?' + params,
+				headers: subHeaders,
 				method: 'GET',
 			}
 
 			// put the books into the users books array, ember likes it this way
 			request(subOptions, function (error, response, body) {
-			    	returnObj['books'] = body;
-				  	returnObj.books.forEach(function(book){
-				  		book.id = book.objectId;
-				  		returnObj['user'].books.push(book.objectId);
-				  	});
-				  	res.send(returnObj);
-			    }
-			);
-			}
-	    }
-	);
+				var books = JSON.parse(body).results;
+		    	returnObj['books'] = books;
+			  	books.forEach(function(book){
+			  		book.id = book.objectId;
+			  		returnObj['user']['books'] = [];
+			  		returnObj['user']['books'].push(book.objectId);
+			  	});
+			  	res.send(returnObj);
+		    });
+		}
+    });
 }

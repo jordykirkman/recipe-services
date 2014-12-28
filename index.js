@@ -12,17 +12,23 @@ app.listen(app.get('port'), function() {
 
 module.exports = app;
 
+// we need to tell the routes to use the environment variables as headers
 router.use(function(req, res, next){
 
-	var appid = process.env.appid;
-	var apikey = process.env.apikey;
+	var appid = process.env.APPID;
+	var apikey = process.env.APIKEY;
 
-	req.header("X-Parse-Application-Id", appid);
-	req.header("X-Parse-REST-API-Key", apikey);
-	req.header("Content-Type", "application/json");
-	if(req.get("X-Parse-Session-Token")){
-		req.header("X-Parse-Session-Token", req.get("X-Parse-Session-Token"));
+	var headers = {
+		"X-Parse-Application-Id": appid,
+		"X-Parse-REST-API-Key": apikey,
+		"Content-Type": "application/json",
 	}
+
+	if(req.get("X-Parse-Session-Token")){
+		headers["X-Parse-Session-Token"] = req.get("X-Parse-Session-Token");
+	}
+
+	req.headers = headers;
 	
 	next();
 });
