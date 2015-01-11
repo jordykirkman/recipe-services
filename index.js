@@ -2,9 +2,11 @@ var express = require('express');
 var app = express();
 var router = express.Router();
 var http = require('http');
+var bodyParser = require('body-parser');
 
 app.set('port', (process.env.PORT || 5000));
 app.use(express.static(__dirname + '/public'));
+app.use(bodyParser.json());
 
 app.listen(app.get('port'), function() {
   console.log("Node app is running at localhost:" + app.get('port'));
@@ -35,6 +37,7 @@ router.use(function(req, res, next){
 
 // user routes
 var user = require('./user');
+router.get('/users', user.getAll);
 router.get('/users/:id', user.getById);
 router.post('/users', user.post);
 router.get('/login', user.login);
