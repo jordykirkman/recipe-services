@@ -1,4 +1,5 @@
 var request = require('request');
+var bodyParser = require('body-parser');
 
 // get all recipes
 exports.getAll = function (req, res) {
@@ -26,7 +27,8 @@ exports.getAll = function (req, res) {
 		  		item.id = item.objectId;
 		  		formattedResponse['recipes'].push(item);
 		  	});
-		    res.send(formattedResponse);
+
+		    res.send(JSON.stringify(formattedResponse));
 
 		})
 
@@ -43,7 +45,7 @@ exports.getAll = function (req, res) {
 
 		  	var finalResponse = JSON.parse(body);
 		  	finalResponse.id = finalResponse.objectId;
-		    res.send(finalResponse);
+		    res.send(JSON.stringify(finalResponse));
 
 		})
 	}
@@ -54,7 +56,7 @@ exports.getById = function (req, res) {
 	var id = req.params.id;
 
 	var options = {
-		url: 'https://api.parse.com/1/recipes/' + id,
+		url: 'https://api.parse.com/1/classes/Recipe/' + id,
 		method: 'GET',
 		headers: req.headers,
 	}
@@ -63,30 +65,34 @@ exports.getById = function (req, res) {
 
 	  	var finalResponse = JSON.parse(body);
 	  	finalResponse.id = finalResponse.objectId;
-	    res.send(finalResponse);
+	    res.send(JSON.stringify(finalResponse));
 
 	})
 }
 
 // create a new user
 exports.post = function (req, res) {
-	var data = req.body;
+	var data = req.body.recipe;
 
 	var options = {
 		url: 'https://api.parse.com/1/classes/Recipe/',
 		headers: req.headers,
-		body: data,
+		body: JSON.stringify(data),
 		method: 'post'
 	}
 
-	request(
-		options,
-	    function (error, response, body) {
-		  	var finalResponse = JSON.parse(body);
-		  	finalResponse.id = finalResponse.objectId;
-		    res.send(finalResponse);
+	request(options, function (error, response, body) {
+		if(JSON.parse(body).error){
+			res.send(body);
+		} else {
+			// parse Baas doesnt return a whole object, so if there is no error
+			// we need to just add the id to the original object and return it
+		  	var finalResponse = {};
+		  	finalResponse['recipe'] = data;
+		  	finalResponse['recipe']['id'] = JSON.parse(body).objectId;
+		    res.send(JSON.stringify(finalResponse));
 	    }
-	);
+	});
 }
 
 // update user by id
@@ -106,7 +112,7 @@ exports.update = function (req, res) {
 	    function (error, response, body) {
 		  	var finalResponse = JSON.parse(body);
 		  	finalResponse.id = finalResponse.objectId;
-		    res.send(finalResponse);
+		    res.send(JSON.stringify(finalResponse));
 	    }
 	);
 }
