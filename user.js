@@ -1,15 +1,20 @@
 var request = require('request');
+var bodyParser = require('body-parser');
 
 // get all books or get by query string
 exports.getAll = function (req, res) {
 
 	// if a list of ids is in the query string, fetch them all
-	if(req.query.ids){
+	if(req.query.ids || req.query.username){
 
 		var objects = [];
-		req.query.ids.forEach(function(id){
-			objects.push('{"objectId":"' + id + '"}');
-		});
+		if(req.query.ids){
+			req.query.ids.forEach(function(id){
+				objects.push('{"objectId":"' + id + '"}');
+			});
+		} else if(req.query.username){
+			objects.push('{"username":"' + req.query.username + '"}');
+		}
 		var params = encodeURIComponent('where={"$or":[' + objects.toString() + ']}');
 
 		var options = {
@@ -26,7 +31,7 @@ exports.getAll = function (req, res) {
 		  		item.id = item.objectId;
 		  		formattedResponse['users'].push(item);
 		  	});
-		    res.send(formattedResponse);
+		    res.send(JSON.stringify(formattedResponse));
 
 		})
 
@@ -35,7 +40,7 @@ exports.getAll = function (req, res) {
 		// send back nothing, we do not allow someone to fetch all users
 		var formattedResponse = {};
 		formattedResponse['users'] = [];
-		res.send(formattedResponse);
+		res.send(JSON.stringify(formattedResponse));
 	}
 }
 
@@ -78,13 +83,13 @@ exports.getById = function (req, res) {
 			// put the books into the users books array, ember likes it this way
 			request(subOptions, function (error, response, body) {
 				var books = JSON.parse(body).results;
+				returnObj['user']['books'] = [];
 		    	returnObj['books'] = books;
 			  	books.forEach(function(book){
-			  		book.id = book.objectId;
-			  		returnObj['user']['books'] = [];
+			  		book['id'] = book.objectId;
 			  		returnObj['user']['books'].push(book.objectId);
 			  	});
-			  	res.send(returnObj);
+			  	res.send(JSON.stringify(returnObj));
 		    });
 		}
 	})
@@ -92,19 +97,20 @@ exports.getById = function (req, res) {
 
 // create a new user
 exports.post = function (req, res) {
-	var data = req.body;
+	var data = req.body.user;
 
 	var options = {
-		url: 'https://api.parse.com/1/classes/Book/',
+		url: 'https://api.parse.com/1/users/',
 		headers: req.headers,
-		body: data,
+		body: JSON.stringify(data),
 		method: 'post'
 	}
 
 	request.post(options, function (error, response, body) {
-		  	var finalResponse = JSON.parse(body);
-		  	finalResponse.id = finalResponse.objectId;
-		    res.send(finalResponse);
+		  	var finalResponse = {};
+		  	finalResponse['user'] = JSON.parse(body);
+		  	finalResponse['user']['id'] = JSON.parse(body).objectId;
+		    res.send(JSON.stringify(finalResponse));
 	    }
 	);
 }
@@ -112,19 +118,19 @@ exports.post = function (req, res) {
 // update user by id
 exports.update = function (req, res) {
 	var id = req.params.id;
-	var data = req.body;
+	var data = req.body.user;
 
 	var options = {
 		url: 'https://api.parse.com/1/classes/Book/' + id,
 		headers: req.headers,
-		body: data,
+		body: JSON.stringify(data),
 		method: 'post'
 	}
 
 	request(options, function (error, response, body) {
 		  	var finalResponse = JSON.parse(body);
 		  	finalResponse.id = finalResponse.objectId;
-		    res.send(finalResponse);
+		    res.send(JSON.stringify(finalResponse));
 	    }
 	);
 }
@@ -147,7 +153,7 @@ exports.login = function (req, res) {
 
 	  	// if theres an error
 	  	if(user.error){
-	  		res.send(user);
+	  		res.send(JSON.stringify(user));
 	  	} else {
 		  	// otherwise we need the user's books
 		  	user.id = user.objectId;
@@ -174,7 +180,7 @@ exports.login = function (req, res) {
 			  		returnObj['user']['books'] = [];
 			  		returnObj['user']['books'].push(book.objectId);
 			  	});
-			  	res.send(returnObj);
+			  	res.send(JSON.stringify(returnObj));
 		    });
 		}
     });
