@@ -1,4 +1,4 @@
-# node-js-getting-started
+# RecipeBox (proxy services in node.js)
 
 These are the proxy services for my work-in-progress recipe sharing app [RecipeBox](https://github.com/jordykirkman/recipe-share) using [Express 4](http://expressjs.com/).
 
